@@ -23,6 +23,7 @@ float AccZ{};        // accelerometer in Z (g's)
 float AngleRoll{};   // calculated roll based on accelerometers (degrees, centered at 0)
 float AnglePitch{};  // calculated pitch based on accelerometers (degrees, centered at 0)
 float AngleYaw{};    // integrated yaw, based on gyros
+float Temperature{};
 unsigned long lastTimeMeasureYaw = 0;
 
 
@@ -50,6 +51,7 @@ void sendSensorValuesOverWebSocket() {
   jsonDocument["AngleRoll"] = AngleRoll;
   jsonDocument["AnglePitch"] = AnglePitch;
   jsonDocument["AngleYaw"] = AngleYaw;
+  jsonDocument["Temperature"] = Temperature;
 
   // Serialize the JSON object to a string
   String data;
@@ -111,6 +113,7 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "<p>Angle Roll: <span id='AngleRoll'>" + String(AngleRoll) + "</span></p>";
   html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
   html += "<p>Angle Yaw: <span id='AngleYaw'>" + String(AngleYaw) + "</span></p>";
+  html += "<p>Temperature: <span id='Temperature'>" + String(Temperature) + "</span> celcius</p>";
   html += "</div>";
 
   html += "<div style='float:left; width:50%;' id='scene'></div>";
@@ -144,6 +147,8 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "  document.getElementById('AngleRoll').textContent = data.AngleRoll;";
   html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
   html += "  document.getElementById('AngleYaw').textContent = data.AngleYaw;";
+  html += "  document.getElementById('Temperature').textContent = data.Temperature;";
+  
   html += "    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);";
   html += "    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);";
   html += "    var angleYaw = parseFloat(data.AngleYaw) * (Math.PI / 180);";
@@ -164,7 +169,20 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   server.begin();
 }
 
-void loop() {
+void readTemperature()
+{
+  // Request temperature data
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x41);  // Address of TEMP_OUT_H
+  Wire.endTransmission();
+  Wire.requestFrom(MPU_ADDR, 2);  // Reading 2 bytes
+
+  Temperature = (float) (int16_t(Wire.read() << 8 | Wire.read()))/ 340.0 + 36.53;
+}
+
+
+void readMPU()
+{
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x1A);
   Wire.write(0x05);
@@ -197,6 +215,11 @@ void loop() {
   AccX=(float)AccXLSB/4096;
   AccY=(float)AccYLSB/4096;
   AccZ=(float)AccZLSB/4096;
+}
+
+
+void updateAbsAngles()
+{
   AngleRoll=atan(AccY/sqrt(AccX*AccX+AccZ*AccZ))*1/(3.142/180);
   AnglePitch=-atan(AccX/sqrt(AccY*AccY+AccZ*AccZ))*1/(3.142/180);
 
@@ -207,7 +230,12 @@ void loop() {
   lastTimeMeasureYaw = currentTime;
   // Integrate the gyroscope data to get yaw
   AngleYaw += RateYaw * dt;
+}
 
+void loop() {
+  readTemperature();
+  readMPU();
+  updateAbsAngles();
   // Send the updated sensor values over WebSocket
   sendSensorValuesOverWebSocket();
   delay(50); // Update every n milliseconds
