@@ -14,14 +14,18 @@ constexpr int PIN_SDA = 1;
 constexpr int PIN_SCL = 2;
 const int MPU_ADDR = 0x68; // I2C address of the MPU-6050. If AD0 pin is set to HIGH, the I2C address will be 0x69.
 
-float RateRoll{};
-float RatePitch{};
-float RateYaw{};
-float AccX{};
-float AccY{};
-float AccZ{};
-float AngleRoll{};
-float AnglePitch{};
+float RateRoll{};    // gyro: rate of change in roll  (degrees/s)
+float RatePitch{};   // gyro: rate of change in pitch (degrees/s)
+float RateYaw{};     // gyro: rate of change in yaw   (degrees/s)
+float AccX{};        // accelerometer in X (g's)
+float AccY{};        // accelerometer in Y (g's)
+float AccZ{};        // accelerometer in Z (g's)
+float AngleRoll{};   // calculated roll based on accelerometers (degrees, centered at 0)
+float AnglePitch{};  // calculated pitch based on accelerometers (degrees, centered at 0)
+float AngleYaw{};    // integrated yaw, based on gyros
+unsigned long lastTimeMeasureYaw = 0;
+
+
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -45,6 +49,7 @@ void sendSensorValuesOverWebSocket() {
   jsonDocument["AccZ"] = AccZ;
   jsonDocument["AngleRoll"] = AngleRoll;
   jsonDocument["AnglePitch"] = AnglePitch;
+  jsonDocument["AngleYaw"] = AngleYaw;
 
   // Serialize the JSON object to a string
   String data;
@@ -105,6 +110,7 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "<p>Acc Z: <span id='AccZ'>" + String(AccZ) + "</span></p>";
   html += "<p>Angle Roll: <span id='AngleRoll'>" + String(AngleRoll) + "</span></p>";
   html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
+  html += "<p>Angle Yaw: <span id='AngleYaw'>" + String(AngleYaw) + "</span></p>";
   html += "</div>";
 
   html += "<div style='float:left; width:50%;' id='scene'></div>";
@@ -137,10 +143,12 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "  document.getElementById('AccZ').textContent = data.AccZ;";
   html += "  document.getElementById('AngleRoll').textContent = data.AngleRoll;";
   html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
+  html += "  document.getElementById('AngleYaw').textContent = data.AngleYaw;";
   html += "    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);";
   html += "    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);";
+  html += "    var angleYaw = parseFloat(data.AngleYaw) * (Math.PI / 180);";
   html += "    arrowHelper.rotation.set(0, 0, 0);";
-  html += "    arrowHelper.rotation.z = 0;";
+  html += "    arrowHelper.rotation.z = angleYaw;";
   html += "    arrowHelper.rotation.y = angleRoll;";
   html += "    arrowHelper.rotation.x = anglePitch;";
   html += "    renderer.render(scene, camera);";
@@ -191,6 +199,15 @@ void loop() {
   AccZ=(float)AccZLSB/4096;
   AngleRoll=atan(AccY/sqrt(AccX*AccX+AccZ*AccZ))*1/(3.142/180);
   AnglePitch=-atan(AccX/sqrt(AccY*AccY+AccZ*AccZ))*1/(3.142/180);
+
+  // Get the current time
+  unsigned long currentTime = millis();
+   // Calculate time difference (dt) between current and last loop iteration
+  float dt = (float)(currentTime - lastTimeMeasureYaw) / 1000.0; // Convert to seconds
+  lastTimeMeasureYaw = currentTime;
+  // Integrate the gyroscope data to get yaw
+  AngleYaw += RateYaw * dt;
+
   // Send the updated sensor values over WebSocket
   sendSensorValuesOverWebSocket();
   delay(50); // Update every n milliseconds
