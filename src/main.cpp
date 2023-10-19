@@ -104,78 +104,33 @@ server.on("/js/three.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
   request->send(SPIFFS, "/js/three.min.js", "application/javascript");
 });
 
- // Route to serve the HTML page
+// Route to serve the HTML page
 server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-  String html = "<html><body>";
-  html += "<h1>MPU6050 info</h1>";
-  html += "<div style='float:left; width:50%;'>";
-  html += "<p>Rate Roll: <span id='RateRoll'>" + String(RateRoll) + "</span></p>";
-  html += "<p>Rate Pitch: <span id='RatePitch'>" + String(RatePitch) + "</span></p>";
-  html += "<p>Rate Yaw: <span id='RateYaw'>" + String(RateYaw) + "</span></p>";
-  html += "<p>Acc X: <span id='AccX'>" + String(AccX) + "</span></p>";
-  html += "<p>Acc Y: <span id='AccY'>" + String(AccY) + "</span></p>";
-  html += "<p>Acc Z: <span id='AccZ'>" + String(AccZ) + "</span></p>";
-  html += "<p>Angle Roll: <span id='AngleRoll'>" + String(AngleRoll) + "</span></p>";
-  html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
-  html += "<p>Angle Yaw: <span id='AngleYaw'>" + String(AngleYaw) + "</span></p>";
-  html += "<p>Temperature: <span id='Temperature'>" + String(Temperature) + "</span> celcius</p>";
-  html += "<button id='resetButton'>Reset Yaw</button>";
-  html += "</div>";
+  // Buffer to hold the HTML content
+  char html[4096];
+  
+  // Open file and read the template
+  File file = SPIFFS.open("/template.html", "r");
+  if (!file) {
+    Serial.println("File not found");
+    return;
+  }
 
-  html += "<div style='float:left; width:50%;' id='scene'></div>";
+  size_t bytesRead = file.readBytes(html, sizeof(html) - 1);
+  file.close();
+  html[bytesRead] = '\0'; // Null-terminate the read content
 
-  html += "<script src='/js/three.min.js'></script>";
-  html += "<script>";
-
-  html += "document.getElementById('resetButton').addEventListener('click', function() {";
-  html += "  fetch('/resetYaw').then(response => response.text()).then(data => console.log(data));";
-  html += "});";
-  html += "var scene = new THREE.Scene();";
-  html += "var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);";
-  html += "var renderer = new THREE.WebGLRenderer();";
-  html += "renderer.setSize(300, 300);";
-  html += "document.getElementById('scene').appendChild(renderer.domElement);";
-
-  html += "var dir = new THREE.Vector3(1, 0, 0);";
-  html += "var origin = new THREE.Vector3(0, 0, 0);";
-  html += "var length = 1;";
-  html += "var hex = 0xffff00;";
-
-  html += "var arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex);";
-  html += "scene.add(arrowHelper);";
-  html += "camera.position.z = 5;";
-
-  html += "const socket = new WebSocket('ws://' + window.location.hostname + '/ws');";
-  html += "socket.onmessage = function(event) {";
-  html += "  const data = JSON.parse(event.data);";
-  html += "  document.getElementById('RateRoll').textContent = data.RateRoll;";
-  html += "  document.getElementById('RatePitch').textContent = data.RatePitch;";
-  html += "  document.getElementById('RateYaw').textContent = data.RateYaw;";
-  html += "  document.getElementById('AccX').textContent = data.AccX;";
-  html += "  document.getElementById('AccY').textContent = data.AccY;";
-  html += "  document.getElementById('AccZ').textContent = data.AccZ;";
-  html += "  document.getElementById('AngleRoll').textContent = data.AngleRoll;";
-  html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
-  html += "  document.getElementById('AngleYaw').textContent = data.AngleYaw;";
-  html += "  document.getElementById('Temperature').textContent = data.Temperature;";
-
-  html += "    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);";
-  html += "    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);";
-  html += "    var angleYaw = parseFloat(data.AngleYaw) * (Math.PI / 180);";
-  html += "    arrowHelper.rotation.set(0, 0, 0);";
-  html += "    arrowHelper.rotation.z = angleYaw;";
-  html += "    arrowHelper.rotation.y = angleRoll;";
-  html += "    arrowHelper.rotation.x = anglePitch;";
-  html += "    renderer.render(scene, camera);";
-  html += "};";
-
-  html += "</script>";
-
-  html += "</body></html>";
-  request->send(200, "text/html", html);
+  // Replace placeholders with actual values
+  char buffer[4096];
+  snprintf(buffer, sizeof(buffer),
+           html,
+           RateRoll, RatePitch, RateYaw, 
+           AccX, AccY, AccZ,
+           AngleRoll, AnglePitch, AngleYaw, 
+           Temperature);
+  
+  request->send(200, "text/html", buffer);
 });
-
-
   server.begin();
 }
 

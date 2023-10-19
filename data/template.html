@@ -1,0 +1,86 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPU6050 Data</title>
+    <style>
+        /* Add the styles here */
+        .dataDiv {
+            width: 50%%;
+            float: left;
+            box-sizing: border-box; /* to include padding and borders in the div's total width */
+            padding: 10px; /* optional, for some space */
+        }
+
+        .graphicDiv {
+            width: 50%%;
+            float: left;
+            box-sizing: border-box; /* to include padding and borders in the div's total width */
+            padding: 10px; /* optional, for some space */
+        }
+    </style>
+</head>
+<body>
+  <h1>MPU6050 info</h1>
+  <div class="dataDiv">
+    <p>Rate Roll: <span id='RateRoll'>%RateRoll%</span></p>
+    <p>Rate Pitch: <span id='RatePitch'>%RatePitch%</span></p>
+    <p>Rate Yaw: <span id='RateYaw'>%RateYaw%</span></p>
+    <p>Acc X: <span id='AccX'>%AccX%</span></p>
+    <p>Acc Y: <span id='AccY'>%AccY%</span></p>
+    <p>Acc Z: <span id='AccZ'>%AccZ%</span></p>
+    <p>Angle Roll: <span id='AngleRoll'>%AngleRoll%</span></p>
+    <p>Angle Pitch: <span id='AnglePitch'>%AnglePitch%</span></p>
+    <p>Angle Yaw: <span id='AngleYaw'>%AngleYaw%</span></p>
+    <p>Temperature: <span id='Temperature'>%Temperature%</span> celcius</p>
+    <button id='resetButton'>Reset Yaw</button>
+  </div>
+  <div class="graphicDiv" id="scene"></div>
+  <script src='/js/three.min.js'></script>
+  <script>
+  document.getElementById('resetButton').addEventListener('click', function() {
+    fetch('/resetYaw').then(response => response.text()).then(data => console.log(data));
+  });
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+  var renderer = new THREE.WebGLRenderer();
+  renderer.setSize(300, 300);
+  document.getElementById('scene').appendChild(renderer.domElement);
+
+  var dir = new THREE.Vector3(1, 0, 0);
+  var origin = new THREE.Vector3(0, 0, 0);
+  var length = 1;
+  var hex = 0xffff00;
+
+  var arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex);
+  scene.add(arrowHelper);
+  camera.position.z = 5;
+
+  const socket = new WebSocket('ws://' + window.location.hostname + '/ws');
+  socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    document.getElementById('RateRoll').textContent = data.RateRoll;
+    document.getElementById('RatePitch').textContent = data.RatePitch;
+    document.getElementById('RateYaw').textContent = data.RateYaw;
+    document.getElementById('AccX').textContent = data.AccX;
+    document.getElementById('AccY').textContent = data.AccY;
+    document.getElementById('AccZ').textContent = data.AccZ;
+    document.getElementById('AngleRoll').textContent = data.AngleRoll;
+    document.getElementById('AnglePitch').textContent = data.AnglePitch;
+    document.getElementById('AngleYaw').textContent = data.AngleYaw;
+    document.getElementById('Temperature').textContent = data.Temperature;
+
+    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);
+    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);
+    var angleYaw = parseFloat(data.AngleYaw) * (Math.PI / 180);
+
+    arrowHelper.rotation.set(0, 0, 0);
+    arrowHelper.rotation.z = angleYaw;
+    arrowHelper.rotation.y = angleRoll;
+    arrowHelper.rotation.x = anglePitch;
+    renderer.render(scene, camera);
+  };
+  </script>
+</body>
+</html>
+
