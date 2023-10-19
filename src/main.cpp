@@ -107,7 +107,7 @@ server.on("/js/three.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
  // Route to serve the HTML page
 server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   String html = "<html><body>";
-  html += "<h1>ESP32 Web Server</h1>";
+  html += "<h1>MPU6050 info</h1>";
   html += "<div style='float:left; width:50%;'>";
   html += "<p>Rate Roll: <span id='RateRoll'>" + String(RateRoll) + "</span></p>";
   html += "<p>Rate Pitch: <span id='RatePitch'>" + String(RatePitch) + "</span></p>";
