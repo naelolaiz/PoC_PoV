@@ -95,6 +95,11 @@ if (!SPIFFS.begin(true)) {
   return;
 }
 
+server.on("/resetYaw", HTTP_GET, [](AsyncWebServerRequest *request){
+  AngleYaw = 0.0; // Reset the AngleYaw
+  request->send(200, "text/plain", "OK");
+});
+
 server.on("/js/three.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
   request->send(SPIFFS, "/js/three.min.js", "application/javascript");
 });
@@ -114,12 +119,17 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
   html += "<p>Angle Yaw: <span id='AngleYaw'>" + String(AngleYaw) + "</span></p>";
   html += "<p>Temperature: <span id='Temperature'>" + String(Temperature) + "</span> celcius</p>";
+  html += "<button id='resetButton'>Reset Yaw</button>";
   html += "</div>";
 
   html += "<div style='float:left; width:50%;' id='scene'></div>";
 
   html += "<script src='/js/three.min.js'></script>";
   html += "<script>";
+
+  html += "document.getElementById('resetButton').addEventListener('click', function() {";
+  html += "  fetch('/resetYaw').then(response => response.text()).then(data => console.log(data));";
+  html += "});";
   html += "var scene = new THREE.Scene();";
   html += "var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);";
   html += "var renderer = new THREE.WebGLRenderer();";
@@ -148,7 +158,7 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
   html += "  document.getElementById('AngleYaw').textContent = data.AngleYaw;";
   html += "  document.getElementById('Temperature').textContent = data.Temperature;";
-  
+
   html += "    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);";
   html += "    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);";
   html += "    var angleYaw = parseFloat(data.AngleYaw) * (Math.PI / 180);";
