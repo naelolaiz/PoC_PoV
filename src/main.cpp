@@ -4,6 +4,8 @@
 #include <AsyncWebSocket.h>
 #include <Wire.h>
 #include <ArduinoJson.h>
+#include <SPIFFS.h> // Include the SPIFFS library
+
 
 const char* ssid = "0000000";
 const char* password = "MyPassword1234";
@@ -81,41 +83,75 @@ void setup() {
   ws.onEvent(onWebSocketEvent);
   server.addHandler(&ws);
 
+if (!SPIFFS.begin(true)) {
+  Serial.println("An error has occurred while mounting SPIFFS");
+  return;
+}
+
+server.on("/js/three.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
+  request->send(SPIFFS, "/js/three.min.js", "application/javascript");
+});
+
  // Route to serve the HTML page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    String html = "<html><body>";
-    html += "<h1>ESP32 Web Server</h1>";
-    html += "<p>Rate Roll: <span id='RateRoll'>" + String(RateRoll) + "</span></p>";
-    html += "<p>Rate Pitch: <span id='RatePitch'>" + String(RatePitch) + "</span></p>";
-    html += "<p>Rate Yaw: <span id='RateYaw'>" + String(RateYaw) + "</span></p>";
-    html += "<p>Acc X: <span id='AccX'>" + String(AccX) + "</span></p>";
-    html += "<p>Acc Y: <span id='AccY'>" + String(AccY) + "</span></p>";
-    html += "<p>Acc Z: <span id='AccZ'>" + String(AccZ) + "</span></p>";
-    html += "<p>Angle Roll: <span id='AngleRoll'>" + String(AngleRoll) + "</span></p>";
-    html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
-    html += "<script>";
-    html += "const socket = new WebSocket('ws://' + window.location.hostname + '/ws');";
-    html += "socket.onopen = function(event) {";
-    html += "  console.log('WebSocket connection opened.');";
-    html += "};";
-    html += "socket.onmessage = function(event) {";
-    html += "  const data = JSON.parse(event.data);";
-    html += "  document.getElementById('RateRoll').textContent = data.RateRoll;";
-    html += "  document.getElementById('RatePitch').textContent = data.RatePitch;";
-    html += "  document.getElementById('RateYaw').textContent = data.RateYaw;";
-    html += "  document.getElementById('AccX').textContent = data.AccX;";
-    html += "  document.getElementById('AccY').textContent = data.AccY;";
-    html += "  document.getElementById('AccZ').textContent = data.AccZ;";
-    html += "  document.getElementById('AngleRoll').textContent = data.AngleRoll;";
-    html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
-    html += "};";
-    html += "socket.onclose = function(event) {";
-    html += "  console.log('WebSocket connection closed.');";
-    html += "};";
-    html += "</script>";
-    html += "</body></html>";
-    request->send(200, "text/html", html);
-  });
+server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  String html = "<html><body>";
+  html += "<h1>ESP32 Web Server</h1>";
+  html += "<div style='float:left; width:50%;'>";
+  html += "<p>Rate Roll: <span id='RateRoll'>" + String(RateRoll) + "</span></p>";
+  html += "<p>Rate Pitch: <span id='RatePitch'>" + String(RatePitch) + "</span></p>";
+  html += "<p>Rate Yaw: <span id='RateYaw'>" + String(RateYaw) + "</span></p>";
+  html += "<p>Acc X: <span id='AccX'>" + String(AccX) + "</span></p>";
+  html += "<p>Acc Y: <span id='AccY'>" + String(AccY) + "</span></p>";
+  html += "<p>Acc Z: <span id='AccZ'>" + String(AccZ) + "</span></p>";
+  html += "<p>Angle Roll: <span id='AngleRoll'>" + String(AngleRoll) + "</span></p>";
+  html += "<p>Angle Pitch: <span id='AnglePitch'>" + String(AnglePitch) + "</span></p>";
+  html += "</div>";
+
+  html += "<div style='float:left; width:50%;' id='scene'></div>";
+
+  html += "<script src='/js/three.min.js'></script>";
+  html += "<script>";
+  html += "var scene = new THREE.Scene();";
+  html += "var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);";
+  html += "var renderer = new THREE.WebGLRenderer();";
+  html += "renderer.setSize(300, 300);";
+  html += "document.getElementById('scene').appendChild(renderer.domElement);";
+
+  html += "var dir = new THREE.Vector3(1, 0, 0);";
+  html += "var origin = new THREE.Vector3(0, 0, 0);";
+  html += "var length = 1;";
+  html += "var hex = 0xffff00;";
+
+  html += "var arrowHelper = new THREE.ArrowHelper(dir, origin, length, hex);";
+  html += "scene.add(arrowHelper);";
+  html += "camera.position.z = 5;";
+
+  html += "const socket = new WebSocket('ws://' + window.location.hostname + '/ws');";
+  html += "socket.onmessage = function(event) {";
+  html += "  const data = JSON.parse(event.data);";
+  html += "  document.getElementById('RateRoll').textContent = data.RateRoll;";
+  html += "  document.getElementById('RatePitch').textContent = data.RatePitch;";
+  html += "  document.getElementById('RateYaw').textContent = data.RateYaw;";
+  html += "  document.getElementById('AccX').textContent = data.AccX;";
+  html += "  document.getElementById('AccY').textContent = data.AccY;";
+  html += "  document.getElementById('AccZ').textContent = data.AccZ;";
+  html += "  document.getElementById('AngleRoll').textContent = data.AngleRoll;";
+  html += "  document.getElementById('AnglePitch').textContent = data.AnglePitch;";
+  html += "    var anglePitch = parseFloat(data.AnglePitch) * (Math.PI / 180);";
+  html += "    var angleRoll = parseFloat(data.AngleRoll) * (Math.PI / 180);";
+  html += "    arrowHelper.rotation.set(0, 0, 0);";
+  html += "    arrowHelper.rotation.z = 0;";
+  html += "    arrowHelper.rotation.y = angleRoll;";
+  html += "    arrowHelper.rotation.x = anglePitch;";
+  html += "    renderer.render(scene, camera);";
+  html += "};";
+
+  html += "</script>";
+
+  html += "</body></html>";
+  request->send(200, "text/html", html);
+});
+
 
   server.begin();
 }
