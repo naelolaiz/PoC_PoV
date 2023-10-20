@@ -7,8 +7,12 @@
 #include <SPIFFS.h> // Include the SPIFFS library
 
 
-const char* ssid = "0000000";
-const char* password = "MyPassword1234";
+// const char* ssid_ap = "my_SSID";
+// const char* password_ap = "my_password";
+// const char* ssid_sta = "my_SSID";
+// const char* password_sta = "my_password";
+#include "secrets.h"
+constexpr bool create_ap = false;
 
 constexpr int PIN_SDA = 1;
 constexpr int PIN_SCL = 2;
@@ -73,18 +77,35 @@ void setupSensor()
 }
 
 void setup() {
-  // Connect to Wi-Fi
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
+  
 
+  if(create_ap)
+  {
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ssid_ap, password_ap);
+  }
+  else // Connect to Wi-Fi
+  {
+    WiFi.mode(WIFI_STA);  // Set the Wi-Fi mode to Station (Client)
+    WiFi.begin(ssid_sta, password_sta);  // Connect to an existing network using SSID and password
+  }
+  
   Serial.begin(115200);
 
   // initialize MPU-6050
   setupSensor();
 
   // Print the ESP32's IP address
-  Serial.print("AP IP address: ");
-  Serial.println(WiFi.softAPIP());
+  if(create_ap)
+  {
+      Serial.print("AP IP address: ");
+      Serial.println(WiFi.softAPIP());
+  }
+  else
+  {
+    Serial.print("Connected! IP address: ");
+    Serial.println(WiFi.localIP());
+  }
 
   // Attach WebSocket server
   ws.onEvent(onWebSocketEvent);
@@ -189,9 +210,9 @@ void updateAbsAngles()
   AnglePitch=-atan(AccX/sqrt(AccY*AccY+AccZ*AccZ))*1/(3.142/180);
 
   // Get the current time
-  unsigned long currentTime = millis();
+  unsigned long currentTime = micros();
    // Calculate time difference (dt) between current and last loop iteration
-  float dt = (float)(currentTime - lastTimeMeasureYaw) / 1000.0; // Convert to seconds
+  double dt = (double)(currentTime - lastTimeMeasureYaw) / 1000000.0; // Convert to seconds
   lastTimeMeasureYaw = currentTime;
   // Integrate the gyroscope data to get yaw
   AngleYaw += RateYaw * dt;
