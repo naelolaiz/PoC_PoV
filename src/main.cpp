@@ -6,12 +6,13 @@
 #include <SPIFFS.h> // Include the SPIFFS library
 #include "MPU6050.h"
 
+#include "LedController.h"
+
 
 // const char* ssid_ap = "my_SSID";
 // const char* password_ap = "my_password";
 // const char* ssid_sta = "my_SSID";
 // const char* password_sta = "my_password";
-#include "secrets.h"
 constexpr bool create_ap = true;
 
 AsyncWebServer server(80);
@@ -49,12 +50,15 @@ void sendSensorValuesOverWebSocket() {
   ws.textAll(data);
 }
 
+LedController<144,13,GRB> ledController;
 void setup() { 
   Serial.begin(115200);
 
 
 // initialize MPU-6050
   mpu6050.setupSensor();
+  ledController.setup();
+  ledController.startTask();
 
   if(create_ap)
   {
@@ -67,8 +71,6 @@ void setup() {
     WiFi.begin(ssid_sta, password_sta);  // Connect to an existing network using SSID and password
   }
   
-
-
   // Print the ESP32's IP address
   if(create_ap)
   {
@@ -127,6 +129,11 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   request->send(200, "text/html", buffer);
 });
   server.begin();
+
+
+
+
+
 }
 
 void loop() {
