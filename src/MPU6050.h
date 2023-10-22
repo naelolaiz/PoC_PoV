@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-template<int PIN_SDA=1, int PIN_SCL=2, int MPU_ADDR=0x68>
+template<int PIN_SDA, int PIN_SCL, int MPU_ADDR=0x68>
 class MPU6050
 {
 public:

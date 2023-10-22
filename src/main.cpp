@@ -13,7 +13,7 @@
 // const char* ssid_sta = "my_SSID";
 // const char* password_sta = "my_password";
 #include "secrets.h"
-constexpr bool create_ap = false;
+constexpr bool create_ap = true;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -26,7 +26,7 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
   }
 }
 
-MPU6050<1/*SDA*/, 2 /*SCL*/, 0x68 /*i2c address*/> mpu6050;
+MPU6050<4/*SDA*/, 5 /*SCL*/, 0x68 /*i2c address*/> mpu6050;
 
 void sendSensorValuesOverWebSocket() {
   // Create a JSON object to hold the sensor values
@@ -51,6 +51,11 @@ void sendSensorValuesOverWebSocket() {
 }
 
 void setup() { 
+  Serial.begin(115200);
+
+
+// initialize MPU-6050
+  mpu6050.setupSensor();
 
   if(create_ap)
   {
@@ -63,10 +68,7 @@ void setup() {
     WiFi.begin(ssid_sta, password_sta);  // Connect to an existing network using SSID and password
   }
   
-  Serial.begin(115200);
 
-  // initialize MPU-6050
-  mpu6050.setupSensor();
 
   // Print the ESP32's IP address
   if(create_ap)
