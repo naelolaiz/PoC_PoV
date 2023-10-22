@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncWebSocket.h>
-#include <Wire.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h> // Include the SPIFFS library
 #include "MPU6050.h"
