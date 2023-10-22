@@ -9,10 +9,13 @@
 #include "LedController.h"
 
 
+
+#include "secrets.h"
 // const char* ssid_ap = "my_SSID";
 // const char* password_ap = "my_password";
 // const char* ssid_sta = "my_SSID";
 // const char* password_sta = "my_password";
+
 constexpr bool create_ap = true;
 
 AsyncWebServer server(80);
@@ -129,10 +132,6 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
   request->send(200, "text/html", buffer);
 });
   server.begin();
-
-
-
-
 
 }
 

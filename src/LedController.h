@@ -11,7 +11,7 @@ extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
 
 // Move all implementation to .cpp file
-template <size_t NUM_LEDS = 144u, size_t LED_PIN = 13u, EOrder COLOR_ORDER = GRB>
+template <size_t NUM_LEDS, size_t LED_PIN, EOrder COLOR_ORDER>
 class LedController
 {
     constexpr static size_t BRIGHTNESS{18u};
@@ -124,22 +124,25 @@ void ChangePalettePeriodically()
 public:
 static void LoopTask(void* parameter)
 {
-    auto t = static_cast<LedController*>(parameter);
-    t->ChangePalettePeriodically();
-    
-    static uint8_t startIndex = 0;
-    startIndex = startIndex + 1; /* motion speed */
-    
-    t->FillLEDsFromPaletteColors( startIndex);
-    
-    FastLED.show();
-    // FastLED.delay(1000 / UPDATES_PER_SECOND);
+    for(;;)
+    {
+        auto t = static_cast<LedController*>(parameter);
+        t->ChangePalettePeriodically();
+        
+        static uint8_t startIndex = 0;
+        startIndex = startIndex + 1; /* motion speed */
+        
+        t->FillLEDsFromPaletteColors( startIndex);
+        
+        FastLED.show();
+        // FastLED.delay(1000 / UPDATES_PER_SECOND);
 
-    vTaskDelay(pdMS_TO_TICKS(1000 / UPDATES_PER_SECOND)); 
+        vTaskDelay(pdMS_TO_TICKS(1000 / UPDATES_PER_SECOND)); 
+
+    }
 }
 
 void startTask()
-
 {
       xTaskCreate(
     LoopTask,      /* Task function */
