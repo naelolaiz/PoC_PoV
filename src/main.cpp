@@ -9,14 +9,13 @@
 #include "LedController.h"
 
 
-
 #include "secrets.h"
 // const char* ssid_ap = "my_SSID";
 // const char* password_ap = "my_password";
 // const char* ssid_sta = "my_SSID";
 // const char* password_sta = "my_password";
 
-constexpr bool create_ap = true;
+constexpr static bool create_ap = true;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -135,8 +134,12 @@ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
 
 }
 
-void loop() {
+void loop() 
+{
   mpu6050.readAndUpdateValues();
+
+  ledController.setInstantVelocity(mpu6050.data().RatePitch);
+  
   // Send the updated sensor values over WebSocket
   sendSensorValuesOverWebSocket();
   delay(50); // Update every n milliseconds
