@@ -15,7 +15,7 @@
 // const char* ssid_sta = "my_SSID";
 // const char* password_sta = "my_password";
 
-constexpr static bool create_ap = true;
+constexpr static bool create_ap = false;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
