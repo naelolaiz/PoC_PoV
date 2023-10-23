@@ -74,7 +74,7 @@ private:
 
     void readRGBBitmapColumn(size_t col) 
     {
-        col*=3;
+        col*=3; // TODO revert
         std::vector<std::vector<uint8_t>> columnRGB;
 
         if (col >= imageWidth) 
@@ -117,38 +117,40 @@ static void LoopTask(void* parameter)
 
         if (constantVelocity > threshold)
         {
-            //t->mLeds[i] = CRGB::Green; // Left half
-            //t->mLeds[NUM_LEDS - 1 - i] = CRGB::Green; // Right half
            if(!t->mDisplayingBmp)
            {
               t->mDisplayingBmp = true;
-              t->mCurrentColumn = 0;
+              //t->mCurrentColumn = 0;
            }
            t->readRGBBitmapColumn(t->mCurrentColumn);
 //           t->mCurrentColumn = (t->mCurrentColumn+1) % imageWidth;
-           t->mCurrentColumn = (t->mCurrentColumn+1) % int(imageWidth/3);
+           t->mCurrentColumn = (t->mCurrentColumn+1) % int(imageWidth/3); // TODO revert
         }
-        else 
+        else if (constantVelocity < -threshold)
         {
-
-            t->mDisplayingBmp = false;
-            t->mCurrentColumn = 0;
+           t->readRGBBitmapColumn(t->mCurrentColumn);
+//           t->mCurrentColumn = (t->mCurrentColumn+1) % imageWidth;
+           t->mCurrentColumn = (t->mCurrentColumn-1) % int(imageWidth/3); // TODO revert
+            /*
             const double multiplier = min(maxValue, absConstantVelocity) / maxValue;
             // Animate from ends to the center based on gyro movement
             for (int i = 0; i <= MID_LEDS; ++i) 
             {
-                if (constantVelocity < -threshold)
+                
                 {
-                    t->mLeds[i] = CRGB::Cyan; // Left half
-                    t->mLeds[NUM_LEDS - 1 - i] = CRGB::Cyan; // Right half
+                   // t->mLeds[i] = CRGB::Cyan; // Left half
+                    //t->mLeds[NUM_LEDS - 1 - i] = CRGB::Cyan; // Right half
                 }
-                else
-                {
-                    t->mLeds[i] = CRGB::Black; // Left half
-                    t->mLeds[NUM_LEDS - 1 - i] = CRGB::Black; // Right half
-                }
+            
             }
-            FastLED.setBrightness(  BRIGHTNESS * multiplier );
+            FastLED.setBrightness(  BRIGHTNESS * multiplier );*/
+        }
+        else
+        {
+            FastLED.clear();
+            //t->mDisplayingBmp = false;
+            //t->mLeds[i] = CRGB::Black; // Left half
+            //t->mLeds[NUM_LEDS - 1 - i] = CRGB::Black; // Right half
         }
       
         FastLED.show();
