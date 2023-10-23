@@ -18,7 +18,7 @@ template <size_t NUM_LEDS, size_t LED_PIN, EOrder COLOR_ORDER>
 class LedController
 {
     constexpr static size_t BRIGHTNESS{18u};
-    constexpr static double UPDATES_PER_SECOND {70u};
+    constexpr static double UPDATES_PER_SECOND {170u};
     constexpr static size_t imageHeight = 77u;
     constexpr static size_t imageWidth = 360u;
 
@@ -74,6 +74,7 @@ private:
 
     void readRGBBitmapColumn(size_t col) 
     {
+        col*=3;
         std::vector<std::vector<uint8_t>> columnRGB;
 
         if (col >= imageWidth) 
@@ -101,7 +102,7 @@ static void LoopTask(void* parameter)
             
     constexpr size_t MID_LEDS {NUM_LEDS/2};
     constexpr static double maxValue = 220.;
-    constexpr static double threshold = 80.;
+    constexpr static double threshold = 35.;
     auto t = static_cast<LedController*>(parameter);
     for(;;)
     {
@@ -124,10 +125,14 @@ static void LoopTask(void* parameter)
               t->mCurrentColumn = 0;
            }
            t->readRGBBitmapColumn(t->mCurrentColumn);
-           t->mCurrentColumn = (t->mCurrentColumn+1) % imageWidth;
+//           t->mCurrentColumn = (t->mCurrentColumn+1) % imageWidth;
+           t->mCurrentColumn = (t->mCurrentColumn+1) % int(imageWidth/3);
         }
         else 
         {
+
+            t->mDisplayingBmp = false;
+            t->mCurrentColumn = 0;
             const double multiplier = min(maxValue, absConstantVelocity) / maxValue;
             // Animate from ends to the center based on gyro movement
             for (int i = 0; i <= MID_LEDS; ++i) 
