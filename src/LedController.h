@@ -98,18 +98,14 @@ private:
     }
 public:
 static void LoopTask(void* parameter)
-{
-            
+{           
     constexpr size_t MID_LEDS {NUM_LEDS/2};
-    constexpr static double maxValue = 220.;
     constexpr static double threshold = 35.;
     auto t = static_cast<LedController*>(parameter);
     for(;;)
     {
-
         const double constantVelocity = t->mConstantVelocity;
-        const double absConstantVelocity = abs(constantVelocity);
-        if (absConstantVelocity > threshold)
+        if (abs(constantVelocity) > threshold)
         {
             // Clear all LEDs
             FastLED.clear();
@@ -131,26 +127,10 @@ static void LoopTask(void* parameter)
            t->readRGBBitmapColumn(t->mCurrentColumn);
 //           t->mCurrentColumn = (t->mCurrentColumn+1) % imageWidth;
            t->mCurrentColumn = (t->mCurrentColumn-1) % int(imageWidth/3); // TODO revert
-            /*
-            const double multiplier = min(maxValue, absConstantVelocity) / maxValue;
-            // Animate from ends to the center based on gyro movement
-            for (int i = 0; i <= MID_LEDS; ++i) 
-            {
-                
-                {
-                   // t->mLeds[i] = CRGB::Cyan; // Left half
-                    //t->mLeds[NUM_LEDS - 1 - i] = CRGB::Cyan; // Right half
-                }
-            
-            }
-            FastLED.setBrightness(  BRIGHTNESS * multiplier );*/
         }
         else
         {
             FastLED.clear();
-            //t->mDisplayingBmp = false;
-            //t->mLeds[i] = CRGB::Black; // Left half
-            //t->mLeds[NUM_LEDS - 1 - i] = CRGB::Black; // Right half
         }
       
         FastLED.show();
