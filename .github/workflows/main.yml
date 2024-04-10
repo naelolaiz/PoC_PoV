@@ -29,3 +29,8 @@ jobs:
         pip install --upgrade platformio
     - name: Run PlatformIO
       run: pio run -e lolin_c3_mini
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware
+        path: .pio/build/lolin_c3_mini/firmware.bin
